@@ -1,0 +1,9 @@
+pip install numpy
+pip install pandas
+pip install matplotlib
+pip install seaborn
+pip install scikit-learn
+pip install ipykernel
+pip install catboost
+pip install deep-translator
+pip install lightgbm
