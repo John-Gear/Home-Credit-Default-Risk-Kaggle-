@@ -121,9 +121,9 @@ TARGET:
 
 Реализована экономическая модель портфеля:
 
-[
+$$
 E[profit] = (1 - p) \cdot profit - p \cdot (loan + profit)
-]
+$$
 
 Где:
 
