@@ -200,3 +200,7 @@ Home Credit notebook.ipynb
 * прогноз прибыли на новых клиентах (на имеющемся X_test)
 
 ---
+
+## Воспроизвести проект можно на Kaggle
+
+https://www.kaggle.com/code/johngearonline/home-credit-default-risk-johngear
