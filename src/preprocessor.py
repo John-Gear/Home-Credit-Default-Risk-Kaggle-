@@ -59,3 +59,5 @@ def build_train_test():
         logger.error('Имена признаков после сплит не совпадают, проверьте датасеты')
     else:
         logger.info('Проверка имен колонок после сплит пройдена')
+    
+    return X_train, y_train, X_test
