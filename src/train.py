@@ -1,7 +1,7 @@
 from catboost import CatBoostClassifier
 from sklearn.metrics import roc_auc_score
 from src.logger import get_logger
-from src.preprocessor import load_data_train, load_data_test, build_train_test
+from src.preprocessor import prepare_for_catboost, build_train_test
 import os
 import json
 import joblib
@@ -10,30 +10,9 @@ import joblib
 logger = get_logger('train')
 logger.info('Training started')
 
-X_train, y_train, X_test = build_train_test()
+X_train, y_train, _ = build_train_test()
 
-# Catboost preprocessing: categorial value
-def fill_cat_nan(df, cat_cols):
-    df=df.copy()
-    for col in cat_cols:
-        df[col] = df[col].fillna('NA')
-    return df
-
-cat_cols = X_train.select_dtypes(include=['object', 'string']).columns.tolist()
-
-X_train = fill_cat_nan(X_train, cat_cols)
-X_test  = fill_cat_nan(X_test, cat_cols)
-
-# проверка перед обучением (в cat_cols не должны остатся nan)
-if X_train[cat_cols].isna().sum().sum() == 0:
-    logger.info('Кат. признаки в X_train подготовлены для обучения в CatBoost')
-else:
-    logger.error('Проверьте кат. признаки (X_train), найдены nan значения')
-
-if X_test[cat_cols].isna().sum().sum() == 0:
-    logger.info('Кат. признаки в X_test подготовлены')
-else:
-    logger.error('Проверьте кат. признаки (X_test), найдены nan значения')
+X_train, cat_cols = prepare_for_catboost(X_train)
 
 model = CatBoostClassifier(
     iterations=500,
@@ -47,12 +26,15 @@ model = CatBoostClassifier(
 
 model.fit(X_train, y_train, cat_features=cat_cols)
 
-# предсказания и метрики
-train_pred = model.predict_proba(X_train)[:, 1]
-roc_auc = roc_auc_score(y_train, train_pred)
+train_proba = model.predict_proba(X_train)[:, 1]
+roc_auc_train = roc_auc_score(y_train, train_proba)
 
 metrics = {
-
+    'roc_auc_train': float(roc_auc_train),
+    'model': 'CatBoostClassifier',
+    'train_rows': int(X_train.shape[0]),
+    'n_features': int(X_train.shape[1]),
+    'cat_cols_count': int(len(cat_cols)),
 }
 
 logger.info(f'Metrics: \n%s', json.dumps(metrics, indent=4))
