@@ -1,0 +1,7 @@
+{
+  "roc_auc_train": 0.7718005891676493,
+  "model": "CatBoostClassifier",
+  "train_rows": 307511,
+  "n_features": 122,
+  "cat_cols_count": 68
+}

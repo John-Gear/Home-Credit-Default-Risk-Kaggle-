@@ -2,3 +2,4 @@
 data/application_train.db # файл 140 гб, не влезает в гитхаб
 data/application_train.db
 data/for_predict/application_test.db
+*.joblib
