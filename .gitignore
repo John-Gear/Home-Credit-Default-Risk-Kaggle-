@@ -1,5 +1,7 @@
 .venv/
-data/application_train.db # файл 140 гб, не влезает в гитхаб
-data/application_train.db
+# файл 140 гб
+data/application_train.db 
+# файл 70 гб
 data/for_predict/application_test.db
+# веса 70 гб
 *.joblib
