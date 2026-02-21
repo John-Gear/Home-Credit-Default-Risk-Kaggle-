@@ -1,0 +1,23 @@
+services:
+  train:
+    build: .
+    command: ["python", "train.py"]
+    volumes:
+      - artefacts:/app/artefacts
+      - ./data:/app/data:ro
+
+  api:
+    build: .
+    command: ["python", "app.py"]
+    ports:
+      - "5000:5000"
+    volumes:
+      - artefacts:/app/artefacts:ro
+      - ./data:/app/data:ro
+
+volumes:
+  artefacts:
+
+# два сервиса в одном .yml
+# 1. docker compose run --rm train для обучения и получения артефактов в model.joblib
+# 2. docker compose up api (апи падает с ошибкой если в model.joblib артефактов обучения не найдено)
