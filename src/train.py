@@ -47,4 +47,7 @@ joblib.dump(model, 'artefacts/model.joblib')
 with open('artefacts/metrics.json', 'w', encoding='utf-8') as f:
     json.dump(metrics, f, ensure_ascii=False, indent=2)
 
+with open('artefacts/expected_cols.json', 'w', encoding='utf-8') as f:
+    json.dump(X_train.columns.tolist(), f, ensure_ascii=False, indent=2)
+
     logger.info('Model saved to artefacts')
