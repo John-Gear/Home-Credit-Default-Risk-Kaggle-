@@ -61,3 +61,23 @@ def build_train_test():
         logger.info('Проверка имен колонок после сплит пройдена')
     
     return X_train, y_train, X_test
+
+# Catboost preprocessing: categorial value
+def prepare_for_catboost(X):
+    X = X.copy()
+    cat_cols = X.select_dtypes(include=["object", "string"]).columns.tolist()
+    for col in cat_cols:
+        X[col] = X[col].fillna("NA")
+    
+    # проверка (в cat_cols не должны остатся nan)
+    if X[cat_cols].isna().sum().sum() == 0:
+        logger.info('Кат. признаки в X_train подготовлены для обучения в CatBoost')
+    else:
+        logger.error('Проверьте кат. признаки (X_train), найдены nan значения')
+
+    if X[cat_cols].isna().sum().sum() == 0:
+        logger.info('Кат. признаки в X_test подготовлены')
+    else:
+        logger.error('Проверьте кат. признаки (X_test), найдены nan значения')
+
+    return X, cat_cols
