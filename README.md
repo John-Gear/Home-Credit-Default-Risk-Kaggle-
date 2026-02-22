@@ -1,28 +1,61 @@
-# Home Credit Default Risk - Credit Scoring ML Pipeline
+# Home Credit Default Risk - Credit Scoring ML Pipeline (ML + API + Docker)
 
-Задача бинарной классификации по прогнозированию дефолта клиента и оптимизации портфельной прибыли банка.
+Проект решает задачу бинарной классификации по прогнозированию дефолта клиента и оптимизации портфельной прибыли банка на табличных данных **Home Credit**
+**инженерный ML-пайплайн**: данные в SQLite, обучение модели `CatBoostClassifier`, сохранение артефактов, inference через Flask API и запуск в Docker.
 
 ---
 
-## Обзор проекта
+## Ключевые идеи проекта
 
-Проект посвящён построению модели кредитного скоринга на основе табличных данных (Kaggle: *Home Credit Default Risk* - https://www.kaggle.com/competitions/home-credit-default-risk/overview).
+- **Источник данных — SQLite**
+- **Модель сохранена как артефакт** `artefacts/model.joblib` (+ expected_cols.json колонки для валидации данных, metrics.json результаты обучения).
+- Через docker.yml контейнеризацию **Inference отделён от обучения**: API стартует на артефактах полученных после обучения модели. Выдает предсказания по одному клиенту /predict_single или по списку /predict_batch (полученным из JSON)
+- Обучение модели и работа Flask приложения **логируются через logger**
+- Подготовка данных для обучения и инференса происходит через глобальный preprocessor (единый контракт данных + дополнительные проверки **снижают риск data leakage**)
 
-Цель проекта:
+---
 
-* построить ML-пайплайн для кредитного скоринга
-* показать корректную валидацию модели (K-Fold, OOF)
-* реализовать выбор порога принятия решения (threshold tuning)
-* перевести модель в экономическую модель прибыли банка
+## Структура проекта
 
-Проект охватывает как техническую часть (модель), так и бизнес-слой.
+```text
+Home Credit Default Risk/
+│
+├── notebooks/
+│       └── Home Credit notebook.ipynb        # исследовательский ноутбук
+│
+├── data/
+│   ├── for_predict/
+│   │   └── application_test.db
+│   ├── application_train.db                 # SQLite база данных для обучения
+│   └── HomeCredit_columns_description.csv   # текстовые описания колонок
+│
+├── artefacts/
+│   ├── expected_cols.json                   # список входных фичей, ожидаемых api (контракт)
+│   ├── model.joblib                         # сохранённый CatBoost model artifact (joblib)
+│   └── metrics.json                         # метрики
+│
+├── src/
+│   ├── db.py                                # загрузка данных из SQLite
+│   ├── preprocessor.py                      # чистка/приведение типов, локальный препроцессор для CB
+│   ├── train.py                             # обучение + сохранение model.joblib и metrics.json
+│   ├── predict.py                           # порог THRESHOLD и вспомогательная логика inference
+│   └── logger.py                            # логгер
+│
+├── app.py                                   # Flask API (/health, /predict_single, /predict_batch)
+├── requirements.txt
+├── docker-compose.yml                       # оркестрация контейнеров: 1 - обучение, 2 - flask api
+└── Dockerfile
+```
 
 ---
 
 ## Данные
 
-* `application_train.csv` — исторические клиенты с известным TARGET (дефолт / не дефолт)
-* `application_test.csv` — новые клиенты без TARGET
+В проекте используется датасет Home Credit Default Risk, загруженный в SQLite:
+
+- файл: data/application_train.db для обучения модели
+- файл: data/for_predict/application_test.db для предсказаний модели (имитация инференса)
+- таблица: HomeCredit_columns_description.csv с описанием колонок в датасете application_train.db (нужно для исследоваительского ноутбука)
 (взято: https://www.kaggle.com/competitions/home-credit-default-risk/overview)
 
 TARGET:
@@ -69,7 +102,7 @@ TARGET:
 
 ### 5. Advanced Models: LightGBM
 
-* реализована альтернативная LightGBM-модель
+* реализована альтернативная LightGBM-модель (в ноутбуке)
 * оценка через cross-validation
 
 ---
@@ -141,14 +174,39 @@ $$
 * Recall: **48%**
 * Expected portfolio profit: **≈ 514 млн руб**
 
+
+---
+
+### 12. Inference (predict/API)
+
+* Сохранение артефактов после обучения модели: artefacts/model.joblib, artefacts/metrics.json, artefacts/expected_cols.json
+* Flask API Endpoints (get - /health, POST - /predict_single, /predict_batch)
+* Docker (оркестрация контейнеров обучение -> flask api)
+
+---
+
+## Docker
+
+1. Первичное обучение модели и получение артефактов
+```bash
+docker compose run --rm train
+```
+
+2. Запуск flask api
+```bash
+docker compose up api
+```
+
 ---
 
 ## Ключевые идеи проекта
 
+* В проекте реализован полный ML + Business pipeline для задачи кредитного скоринга
 * ROC-AUC используется для выбора модели
 * Threshold выбирается по конкертным экономическим показателям
 * OOF необходим для честного ROC-AUC и как гарантия от переобучения/недообучения модели
-* Модель переведена в денежный эквивалент
+* Модель переведена в денежный эквивалент: экономическая интерпретация в финансовых показателях + прогноз прибыли на новых клиентах (на имеющемся X_test)
+* Инференс модели реализован через контейнеры docker. После обучения flask api готово к получению данных JSON для дальнейших предсказаний
 
 ---
 
@@ -160,44 +218,13 @@ $$
 * scikit-learn
 * catboost
 * lightgbm
+* flask
 
 ---
 
 ## Визуализация
 ![Баланс между одобрением и риском](https://raw.githubusercontent.com/John-Gear/Home-Credit-Default-Risk-Kaggle-/refs/heads/main/%D0%91%D0%B0%D0%BB%D0%B0%D0%BD%D1%81%20%D0%BC%D0%B5%D0%B6%D0%B4%D1%83%20%D0%BE%D0%B4%D0%BE%D0%B1%D1%80%D0%B5%D0%BD%D0%B8%D0%B5%D0%BC%20%D0%B8%20%D1%80%D0%B8%D1%81%D0%BA%D0%BE%D0%BC.png)
 ![Матрица распределений](https://raw.githubusercontent.com/John-Gear/Home-Credit-Default-Risk-Kaggle-/refs/heads/main/%D0%9C%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B0%20%D1%80%D0%B0%D1%81%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B9.png)
-
----
-
-## Структура проекта
-
-```
-notebooks/
-    Home Credit notebook.ipynb
-
-src/
-```
-
----
-
-## Как запустить
-
-```bash
-pip install -r requirements.txt
-Home Credit notebook.ipynb
-```
-
----
-
-## Итог
-
-В проекте реализован полный ML + Business pipeline для задачи кредитного скоринга:
-
-* корректная валидация полученных данных
-* выбор модели (+ сравнение)
-* выбор порога отказы/одобрения (threshold)
-* экономическая интерпретация в финансовых показателях
-* прогноз прибыли на новых клиентах (на имеющемся X_test)
 
 ---
 
